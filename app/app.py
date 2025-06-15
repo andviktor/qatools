@@ -3,7 +3,7 @@ from typing import Optional, Union, Any
 
 from modules.sitemap.sitemap import extract_internal_links, format_sitemap_for_jstree
 
-app = Flask(__name__)
+app: Flask = Flask(__name__)
 
 
 @app.route("/", methods=["GET"])
