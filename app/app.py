@@ -15,6 +15,8 @@ def index() -> Union[str, Response]:
     if url:
         try:
             sitemap_data: dict[str, Any] = extract_internal_links(url, max_depth=depth)
+            import pprint
+            pprint.pprint(sitemap_data["metadata"])  # For debugging purposes
             sitemap = format_sitemap_for_jstree(sitemap_data)
         except Exception as e:
             sitemap = f"An error occurred: {e}"

@@ -89,7 +89,7 @@
                   <div class="input-group mb-3">
                     <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
                     <span class="input-group-text">Max depth</span>
-                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth if depth else 100 }}" style="max-width: 80px;">
+                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth if depth is not none else 100 }}" style="max-width: 80px;">
                     <button class="btn btn-outline-secondary" type="submit">Analyze</button>
                   </div>
                 </form>

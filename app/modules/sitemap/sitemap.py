@@ -4,18 +4,22 @@ from urllib.parse import urlparse, urljoin
 from typing import List, Set, Dict, Any, Tuple, Deque
 from collections import deque, defaultdict
 
+import requests
+from bs4 import BeautifulSoup, Tag
+from urllib.parse import urlparse, urljoin
+from typing import List, Set, Dict, Any, Optional
 
 def normalize_url(url: str) -> str:
     return url.rstrip("/") if url != "/" else url
 
-
 def extract_internal_links(
     url: str,
     visited: Set[str] | None = None,
-    max_depth: int = 2,
+    max_depth: int = 100,
     current_depth: int = 0,
     external_links: Set[str] | None = None,
     links_per_page: Dict[str, List[str]] | None = None,
+    metadata: Optional[Dict[str, Dict[str, str]]] = None,
 ) -> Dict[str, Any]:
     if visited is None:
         visited = set()
@@ -23,6 +27,8 @@ def extract_internal_links(
         external_links = set()
     if links_per_page is None:
         links_per_page = {}
+    if metadata is None:
+        metadata = {}
 
     normalized_url: str = normalize_url(url)
     if normalized_url in visited or current_depth > max_depth:
@@ -59,6 +65,15 @@ def extract_internal_links(
 
     links_per_page[normalized_url] = internal_links
 
+    title: str = soup.title.string.strip() if soup.title and soup.title.string else ""
+    description_tag = soup.find("meta", attrs={"name": "description"})
+    description: str = description_tag["content"].strip() if description_tag and "content" in description_tag.attrs else ""
+
+    metadata[normalized_url] = {
+        "title": title,
+        "description": description
+    }
+
     for link in internal_links:
         extract_internal_links(
             link,
@@ -67,10 +82,15 @@ def extract_internal_links(
             current_depth=current_depth + 1,
             external_links=external_links,
             links_per_page=links_per_page,
+            metadata=metadata,
         )
 
     if current_depth == 0:
-        return {"internal": links_per_page, "external": sorted(external_links)}
+        return {
+            "internal": links_per_page,
+            "external": sorted(external_links),
+            "metadata": metadata
+        }
 
     return {}
 
