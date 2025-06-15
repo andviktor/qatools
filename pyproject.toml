@@ -1,0 +1,15 @@
+[tool.black]
+line-length = 88
+target-version = ['py311']
+include = '\.pyi?$'
+exclude = '''
+/(
+    app/static
+)/
+'''
+
+[tool.ruff]
+src = ["app"]
+exclude = ["app/static"]
+line-length = 88
+target-version = "py311"

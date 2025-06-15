@@ -1,0 +1,187 @@
+<!DOCTYPE html><!--
+* CoreUI - Free Bootstrap Admin Template
+* @version v5.2.0
+* @link https://coreui.io/product/free-bootstrap-admin-template/
+* Copyright (c) 2025 creativeLabs Łukasz Holeczek
+* Licensed under MIT (https://github.com/coreui/coreui-free-bootstrap-admin-template/blob/main/LICENSE)
+-->
+<html lang="en">
+  <head>
+    <base href="./">
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="CoreUI - Open Source Bootstrap Admin Template">
+    <meta name="author" content="Łukasz Holeczek">
+    <meta name="keyword" content="Bootstrap,Admin,Template,Open,Source,jQuery,CSS,HTML,RWD,Dashboard">
+    <title>CoreUI Free Bootstrap Admin Template</title>
+    <link rel="apple-touch-icon" sizes="57x57" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-57x57.png') }}">
+    <link rel="apple-touch-icon" sizes="60x60" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-60x60.png') }}">
+    <link rel="apple-touch-icon" sizes="72x72" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-72x72.png') }}">
+    <link rel="apple-touch-icon" sizes="76x76" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-76x76.png') }}">
+    <link rel="apple-touch-icon" sizes="114x114" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-114x114.png') }}">
+    <link rel="apple-touch-icon" sizes="120x120" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-120x120.png') }}">
+    <link rel="apple-touch-icon" sizes="144x144" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-144x144.png') }}">
+    <link rel="apple-touch-icon" sizes="152x152" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-152x152.png') }}">
+    <link rel="apple-touch-icon" sizes="180x180" href="{{ url_for('static', filename='template/dist/assets/favicon/apple-icon-180x180.png') }}">
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='template/dist/assets/favicon/android-icon-192x192.png') }}">
+    <link rel="icon" type="image/png" sizes="32x32" href="{{ url_for('static', filename='template/dist/assets/favicon/favicon-32x32.png') }}">
+    <link rel="icon" type="image/png" sizes="96x96" href="{{ url_for('static', filename='template/dist/assets/favicon/favicon-96x96.png') }}">
+    <link rel="icon" type="image/png" sizes="16x16" href="{{ url_for('static', filename='template/dist/assets/favicon/favicon-16x16.png') }}">
+    <link rel="manifest" href="{{ url_for('static', filename='template/dist/assets/favicon/manifest.json') }}">
+    <meta name="msapplication-TileColor" content="#ffffff">
+    <meta name="msapplication-TileImage" content="{{ url_for('static', filename='template/dist/assets/favicon/ms-icon-144x144.png') }}">
+    <meta name="theme-color" content="#ffffff">
+    <!-- Vendors styles-->
+    <link rel="stylesheet" href="{{ url_for('static', filename='template/dist/vendors/simplebar/css/simplebar.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='template/dist/css/vendors/simplebar.css') }}">
+    <!-- Main styles for this application-->
+    <link href="{{ url_for('static', filename='template/dist/css/style.css') }}" rel="stylesheet">
+    <!-- We use those styles to show code examples, you should remove them in your application.-->
+    <link href="{{ url_for('static', filename='template/dist/css/examples.css') }}" rel="stylesheet">
+    <script src="{{ url_for('static', filename='template/dist/js/config.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/js/color-modes.js') }}"></script>
+    <link href="{{ url_for('static', filename='template/dist/vendors/@coreui/chartjs/css/coreui-chartjs.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='template/dist/vendors/jstree/dist/themes/default/style.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='template/dist/vendors/fontawesome/css/all.min.css') }}" rel="stylesheet">
+
+    <style>
+    /* Color icons using Font Awesome + jsTree */
+    .jstree-icon.fa-folder {
+        color: #39f; /* blue */
+    }
+    .jstree-icon.fa-file {
+        color: #9e9e9e; /* green */
+    }
+    .jstree-icon.fa-copy {
+        color: #ffc107; /* yellow */
+    }
+    .jstree-icon.fa-link {
+        color: #1b9e3e; /* red */
+    }
+    </style>
+  </head>
+  <body>
+    <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
+      <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">
+            <svg class="nav-icon">
+              <use xlink:href="{{ url_for('static', filename='template/dist/vendors/@coreui/icons/svg/free.svg') }}#cil-sitemap"></use>
+            </svg> Sitemap</a></li>
+      </ul>
+      <div class="sidebar-footer border-top d-none d-md-flex">
+        <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
+      </div>
+    </div>
+    <div class="wrapper d-flex flex-column min-vh-100">
+      <div class="body flex-grow-1 pt-4">
+        <div class="container-lg px-4">
+          <div class="card mb-4">
+            <div class="card-body pt-4">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h4 class="card-title mb-0">Sitemap</h4>
+                  <div class="small text-body-secondary">Building a tree view of a website links.</div>
+                </div>
+              </div>
+              <div class="pt-4">
+                <form action="{{ url_for('index') }}" method="GET">
+                  <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
+                    <span class="input-group-text">Max depth</span>
+                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth if depth else 100 }}" style="max-width: 80px;">
+                    <button class="btn btn-outline-secondary" type="submit">Analyze</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </div>
+          <!-- /.card-->
+          {% if url %}
+          <div class="card mb-4">
+            <div class="card-body">
+              <div class="py-4">
+                <div class="tree-view">
+                  <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Tree for URL: {{ url }}</h5>
+                    <div>
+                      <button id="btn-collapse" class="btn btn-outline-secondary me-2" title="Collapse All">
+                        <i class="fas fa-compress-alt"></i>
+                      </button>
+                      <button id="btn-uncollapse" class="btn btn-outline-secondary" title="Expand All">
+                        <i class="fas fa-expand-alt"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <hr>
+                  <div id="jstree"></div>  
+                                                  
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /.card-->
+          {% endif %}
+        </div>
+      </div>
+      <footer class="footer px-4">
+        <div><a href="https://coreui.io">CoreUI </a><a href="https://coreui.io/product/free-bootstrap-admin-template/">Bootstrap Admin Template</a> © 2025 creativeLabs.</div>
+        <div class="ms-auto">Powered by&nbsp;<a href="https://coreui.io/docs/">CoreUI UI Components</a></div>
+      </footer>
+    </div>
+    <!-- CoreUI and necessary plugins-->
+    <script src="{{ url_for('static', filename='template/dist/vendors/@coreui/coreui/js/coreui.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/vendors/simplebar/js/simplebar.min.js') }}"></script>
+    <script>
+      const header = document.querySelector('header.header');
+
+      document.addEventListener('scroll', () => {
+        if (header) {
+          header.classList.toggle('shadow-sm', document.documentElement.scrollTop > 0);
+        }
+      });
+    </script>
+    <!-- Plugins and scripts required by this view-->
+    <script src="{{ url_for('static', filename='template/dist/vendors/chart.js/js/chart.umd.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/vendors/@coreui/chartjs/js/coreui-chartjs.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/vendors/@coreui/utils/js/index.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/vendors/jquery/jquery-3.7.1.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='template/dist/vendors/jstree/dist/jstree.min.js') }}"></script>
+    
+    {% if sitemap %}
+    <script>
+      $(function () {
+        $('#jstree').jstree({
+          'core': {
+            'data': {{ sitemap | tojson }}
+          }
+        });
+
+        // Prevent double-click from toggling
+        $('#jstree').on('dblclick.jstree', function (e) {
+          e.stopImmediatePropagation(); // disables open/close on dblclick
+        });
+
+        // Open node text (URL) in new tab on single-click
+        $('#jstree').on('select_node.jstree', function (e, data) {
+          const url = data.node.text;
+          if (url.startsWith('http')) {
+            window.open(url, '_blank');
+          }
+        });
+      });
+
+      $(function () {
+
+        $('#btn-collapse').on('click', function () {
+          $('#jstree').jstree('close_all');
+        });
+
+        $('#btn-uncollapse').on('click', function () {
+          $('#jstree').jstree('open_all');
+        });
+      });
+    </script>
+    {% endif %}
+  </body>
+</html>
