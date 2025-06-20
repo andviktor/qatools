@@ -64,10 +64,16 @@
   <body>
     <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
       <ul class="sidebar-nav" data-coreui="navigation" data-simplebar="">
-        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('sitemap') }}">
             <svg class="nav-icon">
               <use xlink:href="{{ url_for('static', filename='template/dist/vendors/@coreui/icons/svg/free.svg') }}#cil-sitemap"></use>
-            </svg> Sitemap</a></li>
+            </svg> Sitemap</a>
+        </li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('page_titles') }}">
+            <svg class="nav-icon">
+              <use xlink:href="{{ url_for('static', filename='template/dist/vendors/@coreui/icons/svg/free.svg') }}#cil-short-text"></use>
+            </svg> Titles</a>
+        </li>
       </ul>
       <div class="sidebar-footer border-top d-none d-md-flex">
         <button class="sidebar-toggler" type="button" data-coreui-toggle="unfoldable"></button>
@@ -75,54 +81,7 @@
     </div>
     <div class="wrapper d-flex flex-column min-vh-100">
       <div class="body flex-grow-1 pt-4">
-        <div class="container-lg px-4">
-          <div class="card mb-4">
-            <div class="card-body pt-4">
-              <div class="d-flex justify-content-between">
-                <div>
-                  <h4 class="card-title mb-0">Sitemap</h4>
-                  <div class="small text-body-secondary">Building a tree view of a website links.</div>
-                </div>
-              </div>
-              <div class="pt-4">
-                <form action="{{ url_for('index') }}" method="GET">
-                  <div class="input-group mb-3">
-                    <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
-                    <span class="input-group-text">Max depth</span>
-                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth if depth else 100 }}" style="max-width: 80px;">
-                    <button class="btn btn-outline-secondary" type="submit">Analyze</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-          <!-- /.card-->
-          {% if url %}
-          <div class="card mb-4">
-            <div class="card-body">
-              <div class="py-4">
-                <div class="tree-view">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Tree for URL: {{ url }}</h5>
-                    <div>
-                      <button id="btn-collapse" class="btn btn-outline-secondary me-2" title="Collapse All">
-                        <i class="fas fa-compress-alt"></i>
-                      </button>
-                      <button id="btn-uncollapse" class="btn btn-outline-secondary" title="Expand All">
-                        <i class="fas fa-expand-alt"></i>
-                      </button>
-                    </div>
-                  </div>
-                  <hr>
-                  <div id="jstree"></div>  
-                                                  
-                </div>
-              </div>
-            </div>
-          </div>
-          <!-- /.card-->
-          {% endif %}
-        </div>
+        {% block content %}{% endblock %}
       </div>
       <footer class="footer px-4">
         <div><a href="https://coreui.io">CoreUI </a><a href="https://coreui.io/product/free-bootstrap-admin-template/">Bootstrap Admin Template</a> © 2025 creativeLabs.</div>
