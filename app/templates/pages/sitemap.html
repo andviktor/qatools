@@ -50,3 +50,43 @@
     {% endif %}
 </div>
 {% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='template/dist/vendors/jstree/dist/jstree.min.js') }}"></script>
+    
+{% if sitemap %}
+<script>
+    $(function () {
+    $('#jstree').jstree({
+        'core': {
+        'data': {{ sitemap | tojson }}
+        }
+    });
+
+    // Prevent double-click from toggling
+    $('#jstree').on('dblclick.jstree', function (e) {
+        e.stopImmediatePropagation(); // disables open/close on dblclick
+    });
+
+    // Open node text (URL) in new tab on single-click
+    $('#jstree').on('select_node.jstree', function (e, data) {
+        const url = data.node.text;
+        if (url.startsWith('http')) {
+        window.open(url, '_blank');
+        }
+    });
+    });
+
+    $(function () {
+
+    $('#btn-collapse').on('click', function () {
+        $('#jstree').jstree('close_all');
+    });
+
+    $('#btn-uncollapse').on('click', function () {
+        $('#jstree').jstree('open_all');
+    });
+    });
+</script>
+{% endif %}
+{% endblock %}

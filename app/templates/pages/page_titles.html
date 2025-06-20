@@ -63,7 +63,9 @@
     <!-- /.card-->
     {% endif %}
 </div>
+{% endblock %}
 
+{% block scripts %}
 <script>
 function copyTableData(type) {
     const table = document.querySelector("#page-titles-table");
@@ -108,5 +110,4 @@ function copyTableData(type) {
     });
 }
 </script>
-
 {% endblock %}
