@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-lg px-4">
+    <div class="card mb-4">
+    <div class="card-body pt-4">
+        <div class="d-flex justify-content-between">
+        <div>
+            <h4 class="card-title mb-0">Page titles</h4>
+            <div class="small text-body-secondary">Collecting page titles for a list of URLs.</div>
+        </div>
+        </div>
+        <div class="pt-4">
+        <form action="{{ url_for('page_titles') }}" method="POST">
+            <div class="mb-3">
+                <label for="urls" class="form-label">URLs</label>
+                <textarea class="form-control" id="urls" name="urls" rows="10">{{ "\n".join(urls) if urls else "" }}</textarea>
+            </div>
+
+            <div class="d-flex align-items-center">
+                <button class="btn btn-outline-secondary" type="submit">Collect</button>
+
+                <div class="form-check form-switch ms-auto">
+                    <input class="form-check-input" type="checkbox" id="enable-selenium" name="enable-selenium" value="true">
+                    <label class="form-check-label" for="enable-selenium">Enable selenium</label>
+                </div>
+            </div>
+        </form>
+        </div>
+    </div>
+    </div>
+    <!-- /.card-->
+    {% if titles %}
+    <div class="card mb-4">
+    <div class="card-body">
+        <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('urls')">Copy URLs</button>
+        <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('titles')">Copy titles</button>
+        <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('csv')">Copy table as CSV</button>
+        <div id="page_titles" class="py-4">
+            {% if titles %}
+                <table id="page-titles-table" class="table table-hover">
+                <thead>
+                    <tr>
+                    <th scope="col">URL</th>
+                    <th scope="col">Page Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for url, title in titles.items() %}
+                    <tr>
+                    <td><a href="{{ url }}" target="_blank">{{ url }}</a></td>
+                    <td>{{ title }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                </table>
+                {% else %}
+                <p>No data to display.</p>
+            {% endif %}
+        </div>
+    </div>
+    </div>
+    <!-- /.card-->
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function copyTableData(type) {
+    const table = document.querySelector("#page-titles-table");
+    if (!table) return;
+
+    let output = "";
+    const rows = Array.from(table.rows);
+
+    if (type === "csv") {
+        for (const row of rows) {
+            const cells = [...row.cells].map(cell => {
+                let text = cell.innerText.trim();
+                if (text.includes(',') || text.includes('"') || text.includes('\n')) {
+                    text = '"' + text.replace(/"/g, '""') + '"';
+                }
+                return text;
+            });
+            output += cells.join(",") + "\n";
+        }
+    } else if (type === "titles") {
+        for (const row of rows.slice(1)) {
+            if (row.cells.length >= 2) {
+                output += row.cells[1].innerText.trim() + "\n";
+            }
+        }
+    } else if (type === "urls") {
+        for (const row of rows.slice(1)) {
+            if (row.cells.length >= 1) {
+                output += row.cells[0].innerText.trim() + "\n";
+            }
+        }
+    }
+
+    navigator.clipboard.writeText(output).then(() => {
+        alert(
+            type === "csv" ? "Table copied to clipboard as CSV!" :
+            type === "titles" ? "Titles copied to clipboard!" :
+            "URLs copied to clipboard!"
+        );
+    }).catch(err => {
+        alert("Failed to copy: " + err);
+    });
+}
+</script>
+{% endblock %}
