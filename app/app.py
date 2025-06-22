@@ -10,8 +10,16 @@ from app.modules.page_titles.page_titles_selenium import get_page_titles_seleniu
 app: Flask = Flask(__name__)
 
 
+@app.context_processor
+def inject_defaults():
+    return {
+        "site_name": "QA-Tools"
+    }
+
+
 @app.route("/", methods=["GET"])
 def sitemap() -> Union[str, Response]:
+    meta_title: str = "Sitemap"
     url: Optional[str] = request.args.get("url")
     depth: int = request.args.get("depth", type=int, default=0)
 
@@ -23,6 +31,7 @@ def sitemap() -> Union[str, Response]:
 
         return render_template(
             "pages/sitemap.html",
+            meta_title=meta_title,
             url=url,
             depth=depth,
             sitemap=sitemap_jstree,
@@ -30,11 +39,12 @@ def sitemap() -> Union[str, Response]:
             incoming_links=json.dumps(sitemap_data.get("incoming", {})),
         )
 
-    return render_template("pages/sitemap.html", depth=depth)
+    return render_template("pages/sitemap.html", meta_title=meta_title, depth=depth)
 
 
 @app.route("/page-titles", methods=["GET", "POST"])
 def page_titles() -> Union[str, Response]:
+    meta_title: str = "Titles"
     titles: Optional[dict[str, str]] = None
     urls: Optional[list[str]] = request.form.get("urls")
     enable_selenium: bool = "enable-selenium" in request.form
@@ -43,4 +53,4 @@ def page_titles() -> Union[str, Response]:
         get_page_titles = get_page_titles_selenium if enable_selenium else get_page_titles_request
         titles = get_page_titles(urls)
     
-    return render_template("pages/page_titles.html", urls=urls, titles=titles)
+    return render_template("pages/page_titles.html", meta_title=meta_title, urls=urls, titles=titles)
