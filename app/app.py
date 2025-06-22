@@ -1,7 +1,9 @@
+import json
 from flask import Flask, render_template, request, Response
 from typing import Optional, Union, Any
 
-from modules.sitemap.sitemap import extract_internal_links, format_sitemap_for_jstree
+from modules.sitemap.sitemap import Sitemap
+from modules.sitemap.jstree_formatter import sitemap_to_jstree_formatter
 
 app: Flask = Flask(__name__)
 
@@ -9,17 +11,21 @@ app: Flask = Flask(__name__)
 @app.route("/", methods=["GET"])
 def index() -> Union[str, Response]:
     url: Optional[str] = request.args.get("url")
-    depth: int = request.args.get("depth", type=int, default=100)
-    sitemap: Optional[Union[list[dict], str]] = None  # type: ignore
+    depth: int = request.args.get("depth", type=int, default=0)
 
     if url:
-        try:
-            sitemap_data: dict[str, Any] = extract_internal_links(url, max_depth=depth)
-            import pprint
-            pprint.pprint(sitemap_data["metadata"])  # For debugging purposes
-            sitemap = format_sitemap_for_jstree(sitemap_data)
-        except Exception as e:
-            sitemap = f"An error occurred: {e}"
-        return render_template("index.html", url=url, depth=depth, sitemap=sitemap)
+        sitemap = Sitemap("https://normafahotel.hu/", max_depth=depth)
+        sitemap.collect()
+        sitemap_data: dict[str, Any] = sitemap.get()
+        sitemap_jstree = sitemap_to_jstree_formatter(sitemap_data)
 
-    return render_template("index.html")
+        return render_template(
+            "index.html",
+            url=url,
+            depth=depth,
+            sitemap=sitemap_jstree,
+            metadata_json=json.dumps(sitemap_data.get("metadata", {})),
+            incoming_links=json.dumps(sitemap_data.get("incoming", {})),
+        )
+
+    return render_template("index.html", depth=depth)

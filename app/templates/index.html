@@ -47,18 +47,35 @@
 
     <style>
     /* Color icons using Font Awesome + jsTree */
-    .jstree-icon.fa-folder {
-        color: #39f; /* blue */
+    .jstree-icon.fa-file-circle-check, .jstree-icon.fa-link {
+        color: #39f; /* green */
     }
     .jstree-icon.fa-file {
-        color: #9e9e9e; /* green */
+        color: #a6c8eb; /* green */
     }
-    .jstree-icon.fa-copy {
-        color: #ffc107; /* yellow */
+    .jstree-icon.fa-exclamation-circle {
+        color: #c80000;
     }
-    .jstree-icon.fa-link {
-        color: #1b9e3e; /* red */
+
+    .jstree-closed > .jstree-ocl::before {
+      content: "▶";
+      color: #0b7443;
+      font-size: 12px;
     }
+
+    .jstree-open > .jstree-ocl::before {
+      content: "▼";
+      color: #19c273;
+      font-size: 12px;
+    }
+
+      .jstree-ocl {
+        background: none !important;
+      }
+      .sticky-top {
+        top: 1rem;
+        z-index: 1030;
+      }
     </style>
   </head>
   <body>
@@ -89,7 +106,7 @@
                   <div class="input-group mb-3">
                     <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
                     <span class="input-group-text">Max depth</span>
-                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth if depth is not none else 100 }}" style="max-width: 80px;">
+                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth }}" style="max-width: 80px;">
                     <button class="btn btn-outline-secondary" type="submit">Analyze</button>
                   </div>
                 </form>
@@ -104,18 +121,57 @@
                 <div class="tree-view">
                   <div class="d-flex justify-content-between align-items-center">
                     <h5 class="mb-0">Tree for URL: {{ url }}</h5>
-                    <div>
-                      <button id="btn-collapse" class="btn btn-outline-secondary me-2" title="Collapse All">
-                        <i class="fas fa-compress-alt"></i>
-                      </button>
-                      <button id="btn-uncollapse" class="btn btn-outline-secondary" title="Expand All">
-                        <i class="fas fa-expand-alt"></i>
-                      </button>
+                    <div class="d-flex justify-content-end mb-3">
+                      <div class="input-group" style="width: auto;">
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyInternalJsTreeAsText()" title="Copy Internal Links">
+                          <i class="fa-solid fa-file"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyExternalJsTreeAsText()" title="Copy External Links">
+                          <i class="fa-solid fa-link"></i>
+                        </button>
+                        <button class="btn btn-outline-secondary" type="button" onclick="copyJsTreeAsText()" title="Copy Entire Tree">
+                          <i class="fa-solid fa-sitemap"></i>
+                        </button>
+                        <button id="btn-collapse" class="btn btn-outline-secondary" title="Collapse All">
+                          <i class="fas fa-compress-alt"></i>
+                        </button>
+                        <button id="btn-uncollapse" class="btn btn-outline-secondary" title="Expand All">
+                          <i class="fas fa-expand-alt"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <hr>
-                  <div id="jstree"></div>  
-                                                  
+                  <div class="row mb-3">
+                    <div class="col-sm-7">
+                      <div id="jstree"></div>  
+                    </div>
+                    <div class="col-sm-5">
+                      <div class="card mb-3 sticky-top" id="url-details" style="display: none;">
+                        <div class="card-header text-truncate">
+                          <a href="#" target="_blank" class="text-decoration-none" id="url-details-url"></a>
+                        </div>
+                        <div class="card-body">
+                          <div id="url-details-meta">
+                            <h5 class="card-title" id="url-details-title"></h5>
+                            <p class="card-text text-muted" id="url-details-description"></p>
+
+                            <hr>
+                            <p class="mb-0">
+                              <strong>Canonical:</strong>
+                              <a href="#" target="_blank" id="url-details-canonical" class="text-decoration-none text-break"></a>
+                            </p>
+
+                            <hr>
+                          </div>
+                          <div>
+                            <strong>Linked from:</strong>
+                            <ul class="list-unstyled mt-2" id="url-details-incoming-links">
+                            </ul>
+                          </div>
+                        </div>
+                      </div>
+                    </div>    
                 </div>
               </div>
             </div>
@@ -149,39 +205,128 @@
     <script src="{{ url_for('static', filename='template/dist/vendors/jstree/dist/jstree.min.js') }}"></script>
     
     {% if sitemap %}
+    <script id="sitemap-metadata" type="application/json">
+      {{ metadata_json | safe }}
+    </script>
+    <script id="sitemap-incoming-links" type="application/json">
+      {{ incoming_links | safe }}
+    </script>
     <script>
       $(function () {
-        $('#jstree').jstree({
-          'core': {
-            'data': {{ sitemap | tojson }}
+        const metadata = JSON.parse(document.getElementById("sitemap-metadata").textContent);
+        const incomingLinks = JSON.parse(document.getElementById("sitemap-incoming-links").textContent);
+        const rawData = {{ sitemap | tojson }};
+
+        const enhancedData = rawData.map(node => {
+          let iconClass = "fa fa-file";
+          if (node.parent === "__external__") {
+            iconClass = "fa fa-link";
+          } else if (node.status === 404) {
+            iconClass = "fa fa-exclamation-circle";
+          } else if (metadata[node.text]) {
+            iconClass = "fa fa-file-circle-check";
           }
+          return { ...node, icon: iconClass };
         });
 
-        // Prevent double-click from toggling
+        $('#jstree').jstree({ core: { data: enhancedData } });
+
+        let clickTimer = null;
+
         $('#jstree').on('dblclick.jstree', function (e) {
-          e.stopImmediatePropagation(); // disables open/close on dblclick
+          clearTimeout(clickTimer);
+          const node = $(e.target).closest("li");
+          const tree = $('#jstree').jstree(true);
+          const data = tree.get_node(node);
+          const url = data?.text;
+          if (url?.startsWith("http")) window.open(url, '_blank');
         });
 
-        // Open node text (URL) in new tab on single-click
         $('#jstree').on('select_node.jstree', function (e, data) {
-          const url = data.node.text;
-          if (url.startsWith('http')) {
-            window.open(url, '_blank');
+          clearTimeout(clickTimer);
+          clickTimer = setTimeout(() => renderDetails(data.node.text), 250);
+        });
+
+        $('#btn-collapse').on('click', () => $('#jstree').jstree('close_all'));
+        $('#btn-uncollapse').on('click', () => $('#jstree').jstree('open_all'));
+
+        function renderDetails(url) {
+          const url_metadata = metadata[url];
+          const incoming = incomingLinks[url] || [];
+
+          $("#url-details-url").text(url).attr("href", url);
+
+          if (url_metadata) {
+            $("#url-details-title").text(url_metadata.title || "No title");
+            $("#url-details-description").text(url_metadata.description?.trim() || "Description not available.");
+            $("#url-details-canonical").text(url_metadata.canonical?.trim() || "Canonical not available.")
+                                      .attr("href", url_metadata.canonical || "#");
+            $("#url-details-meta").show();
+          } else {
+            $("#url-details-meta").hide();
           }
-        });
+
+          const $incomingList = $("#url-details-incoming-links").empty();
+          if (incoming.length > 0) {
+            incoming.forEach(from => {
+              $incomingList.append(`<li><a href="${from}" target="_blank" class="text-decoration-none">${from}</a></li>`);
+            });
+          } else {
+            $incomingList.append(`<li class="text-muted">No incoming links</li>`);
+          }
+
+          if (url_metadata || incoming.length > 0) {
+            $("#url-details").show();
+          } else {
+            $("#url-details").hide();
+          }
+        }
       });
 
-      $(function () {
+      // Generic tree copy function
+      function copyJsTreeFilteredAsText(type = "all", treeId = "#jstree") {
+        const tree = $(treeId).jstree(true);
 
-        $('#btn-collapse').on('click', function () {
-          $('#jstree').jstree('close_all');
-        });
+        function traverse(nodeId, depth = 0) {
+          const node = tree.get_node(nodeId);
 
-        $('#btn-uncollapse').on('click', function () {
-          $('#jstree').jstree('open_all');
+          if (type === "internal" && (node.id === "__external__" || node.parent === "__external__")) return [];
+          if (type === "external" && node.id !== "__external__" && node.parent !== "__external__") return [];
+
+          let lines = [`${"  ".repeat(depth)}- ${node.text}`];
+          if (node.children?.length > 0) {
+            for (const childId of node.children) {
+              lines = lines.concat(traverse(childId, depth + 1));
+            }
+          }
+          return lines;
+        }
+
+        const roots = type === "external"
+          ? ["__external__"]
+          : tree.get_node("#").children.filter(id => type !== "internal" || id !== "__external__");
+
+        const outputLines = roots.flatMap(rootId => traverse(rootId));
+        const treeText = outputLines.join("\n");
+
+        navigator.clipboard.writeText(treeText).then(() => {
+          alert((type.charAt(0).toUpperCase() + type.slice(1)) + " links copied to clipboard as text!");
+        }).catch(err => {
+          alert("Failed to copy: " + err);
         });
-      });
-    </script>
+      }
+
+      // Shortcut buttons
+      function copyJsTreeAsText() {
+        copyJsTreeFilteredAsText("all");
+      }
+      function copyInternalJsTreeAsText() {
+        copyJsTreeFilteredAsText("internal");
+      }
+      function copyExternalJsTreeAsText() {
+        copyJsTreeFilteredAsText("external");
+      }
+      </script>
     {% endif %}
   </body>
 </html>

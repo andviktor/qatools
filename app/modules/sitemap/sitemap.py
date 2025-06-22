@@ -1,159 +1,146 @@
-import requests
+from requests import get, Response, RequestException
 from bs4 import BeautifulSoup, Tag
-from urllib.parse import urlparse, urljoin
-from typing import List, Set, Dict, Any, Tuple, Deque
-from collections import deque, defaultdict
+from urllib.parse import urlparse, urljoin, ParseResult
+from typing import List, Set, Dict, Any
+from typing import Optional
+from logging import getLogger, Logger
 
-import requests
-from bs4 import BeautifulSoup, Tag
-from urllib.parse import urlparse, urljoin
-from typing import List, Set, Dict, Any, Optional
+logger: Logger = getLogger(__name__)
 
-def normalize_url(url: str) -> str:
-    return url.rstrip("/") if url != "/" else url
 
-def extract_internal_links(
-    url: str,
-    visited: Set[str] | None = None,
-    max_depth: int = 100,
-    current_depth: int = 0,
-    external_links: Set[str] | None = None,
-    links_per_page: Dict[str, List[str]] | None = None,
-    metadata: Optional[Dict[str, Dict[str, str]]] = None,
-) -> Dict[str, Any]:
-    if visited is None:
-        visited = set()
-    if external_links is None:
-        external_links = set()
-    if links_per_page is None:
-        links_per_page = {}
-    if metadata is None:
-        metadata = {}
+class Sitemap:
+    def __init__(self, root: str, max_depth: int) -> None:
+        self.root: str = Sitemap._normalize_url(root)
+        self.max_depth: int = max_depth
+        self.internal_links: Dict[str, List[str]] = {}
+        self.external_links: Set[str] = set()
+        self.metadata: Dict[str, Dict[str, str]] = {}
+        self.incoming_links: Dict[str, List[str]] = {}
+        self.response_data: Dict[str, Dict[str, Any]] = {}
 
-    normalized_url: str = normalize_url(url)
-    if normalized_url in visited or current_depth > max_depth:
-        return {}
+    @staticmethod
+    def _normalize_url(url: str) -> str:
+        return url.rstrip("/") if url != "/" else url
 
-    visited.add(normalized_url)
+    def _request_get(self, url: str) -> Optional[Response]:
+        try:
+            response: Response = get(url, timeout=10)
+            response.raise_for_status()
+        except RequestException:
+            self.response_data[url] = {
+                "status": response.status_code,
+            }
+            return None
+        return response
 
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Failed to fetch {url}: {e}")
-        return {}
-
-    soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
-    parsed_root = urlparse(url)
-    base_url: str = f"{parsed_root.scheme}://{parsed_root.netloc}"
-
-    internal_links: List[str] = []
-    for a_tag in soup.find_all("a", href=True):
-        if not isinstance(a_tag, Tag):
-            continue
-
-        href: str = a_tag["href"]  # type: ignore
-        full_url: str = urljoin(base_url, href)
-        clean_url: str = normalize_url(full_url.split("#")[0])
-        parsed_href = urlparse(clean_url)
-
-        if parsed_href.netloc == parsed_root.netloc:
-            if clean_url not in visited and clean_url not in internal_links:
-                internal_links.append(clean_url)
-        else:
-            external_links.add(clean_url)
-
-    links_per_page[normalized_url] = internal_links
-
-    title: str = soup.title.string.strip() if soup.title and soup.title.string else ""
-    description_tag = soup.find("meta", attrs={"name": "description"})
-    description: str = description_tag["content"].strip() if description_tag and "content" in description_tag.attrs else ""
-
-    metadata[normalized_url] = {
-        "title": title,
-        "description": description
-    }
-
-    for link in internal_links:
-        extract_internal_links(
-            link,
-            visited=visited,
-            max_depth=max_depth,
-            current_depth=current_depth + 1,
-            external_links=external_links,
-            links_per_page=links_per_page,
-            metadata=metadata,
+    @staticmethod
+    def _extract_tags(soup: BeautifulSoup) -> tuple[str, str, str]:
+        title: str = (
+            soup.title.string.strip() if soup.title and soup.title.string else ""
         )
+        description_tag: Any = soup.find("meta", attrs={"name": "description"})
+        description: str = (
+            description_tag["content"].strip()
+            if description_tag and "content" in description_tag.attrs
+            else ""
+        )
+        canonical_tag: Any = soup.find("link", rel="canonical")
+        canonical: str = (
+            canonical_tag["href"].strip()
+            if canonical_tag and "href" in canonical_tag.attrs
+            else ""
+        )
+        return title, description, canonical
 
-    if current_depth == 0:
-        return {
-            "internal": links_per_page,
-            "external": sorted(external_links),
-            "metadata": metadata
+    def _process_page_a_tags(self, url: str, soup: BeautifulSoup) -> None:
+        normalized_url: str = Sitemap._normalize_url(url)
+        parsed_url: ParseResult = urlparse(url)
+        base_url: str = f"{parsed_url.scheme}://{parsed_url.netloc}"
+        page_links: List[str] = []
+
+        for a_tag in soup.find_all("a", href=True):
+            if not isinstance(a_tag, Tag):
+                continue
+
+            href: str = str(a_tag["href"])
+            full_url: str = urljoin(base_url, href)
+            clean_url: str = Sitemap._normalize_url(full_url.split("#")[0])
+            parsed_href = urlparse(clean_url)
+
+            if parsed_href.netloc == parsed_url.netloc:
+                if clean_url != normalized_url and clean_url not in page_links:
+                    page_links.append(clean_url)
+            else:
+                self.external_links.add(clean_url)
+
+                if clean_url not in self.incoming_links:
+                    self.incoming_links[clean_url] = []
+
+                if normalized_url not in self.incoming_links[clean_url]:
+                    self.incoming_links[clean_url].append(normalized_url)
+
+        self.internal_links[normalized_url] = page_links
+
+    def _extract_links(
+        self,
+        url: str,
+        visited: Optional[Set[str]] = None,
+        current_depth: int = 0,
+    ) -> None:
+        if visited is None:
+            visited = set()
+
+        normalized_url: str = Sitemap._normalize_url(url)
+        if normalized_url in visited:
+            return
+
+        visited.add(normalized_url)
+
+        response: Response = self._request_get(url)
+        if not response:
+            return
+
+        soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
+
+        self._process_page_a_tags(url, soup)
+
+        title, description, canonical = Sitemap._extract_tags(soup)
+
+        self.metadata[normalized_url] = {
+            "title": title,
+            "description": description,
+            "canonical": canonical,
         }
 
-    return {}
+        if current_depth < self.max_depth:
+            for link in self.internal_links[normalized_url]:
+                self._extract_links(
+                    link,
+                    visited=visited,
+                    current_depth=current_depth + 1,
+                )
 
+    def _process_incoming_links(self) -> None:
+        for parent_url, children in self.internal_links.items():
+            for child_url in children:
+                if child_url not in self.incoming_links:
+                    self.incoming_links[child_url] = []
+                self.incoming_links[child_url].append(parent_url)
 
-def format_sitemap_for_jstree(sitemap: Dict[str, Any]) -> List[Dict[str, Any]]:
-    links_per_page: Dict[str, List[str]] = sitemap.get("internal", {})
-    external_links: List[str] = sitemap.get("external", [])
+        for url in self.internal_links:
+            if url not in self.incoming_links:
+                self.incoming_links[url] = []
 
-    nodes: List[Dict[str, Any]] = []
-    seen_node_ids: Set[str] = set()
-    url_min_depth: Dict[str, int] = defaultdict(lambda: float("inf"))  # type: ignore
+    def collect(self) -> None:
+        self._extract_links(self.root)
+        self._process_incoming_links()
 
-    all_children: Set[str] = {
-        child for children in links_per_page.values() for child in children
-    }
-    root_nodes: List[str] = [url for url in links_per_page if url not in all_children]
-
-    queue: Deque[Tuple[str, int]] = deque([(root, 0) for root in root_nodes])
-    while queue:
-        current, depth = queue.popleft()
-        if depth < url_min_depth[current]:
-            url_min_depth[current] = depth
-            for child in links_per_page.get(current, []):
-                queue.append((child, depth + 1))
-
-    seen_urls: Set[str] = set()
-
-    def add_node(node_id: str, parent_id: str, text: str, icon: str) -> str:
-        unique_id: str = f"{parent_id}>{node_id}" if parent_id != "#" else node_id
-        if unique_id not in seen_node_ids:
-            seen_node_ids.add(unique_id)
-            nodes.append(
-                {"id": unique_id, "parent": parent_id, "text": text, "icon": icon}
-            )
-        return unique_id
-
-    def recurse(current_url: str, parent_id: str = "#", depth: int = 0) -> None:
-        if depth > url_min_depth[current_url] or current_url in seen_urls:
-            return
-        seen_urls.add(current_url)
-
-        raw_children: List[str] = links_per_page.get(current_url, [])
-        visible_children: List[str] = [
-            child
-            for child in raw_children
-            if url_min_depth[child] == depth + 1 and child not in seen_urls
-        ]
-
-        visible_children.sort(key=lambda u: u.lower())
-
-        icon: str = "fa fa-folder" if visible_children else "fa-regular fa-file"
-        node_uid: str = add_node(current_url, parent_id, current_url, icon)
-
-        for child in visible_children:
-            recurse(child, node_uid, depth + 1)
-
-    for root in sorted(root_nodes, key=lambda u: u.lower()):
-        recurse(root)
-
-    if external_links:
-        external_root: str = "__external__"
-        add_node(external_root, "#", "External Links", "fa fa-folder")
-        for ext in sorted(external_links, key=lambda x: x.lower()):
-            add_node(ext, external_root, ext, "fa fa-link")
-
-    return nodes
+    def get(self) -> Dict[str, Any]:
+        return {
+            "root": self.root,
+            "internal": self.internal_links,
+            "external": self.external_links,
+            "metadata": self.metadata,
+            "incoming": self.incoming_links,
+            "response": self.response_data,
+        }
