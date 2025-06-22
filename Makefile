@@ -5,6 +5,7 @@ CONTAINER_NAME = $(PROJECT_NAME)-$(SERVICE_NAME)
 .PHONY: start stop rebuild purge black ruff mypy pytest
 
 start:
+	docker compose down
 	docker compose up -d
 
 stop:
