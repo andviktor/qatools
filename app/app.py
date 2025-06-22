@@ -4,8 +4,8 @@ from typing import Optional, Union, Any
 
 from app.modules.sitemap.sitemap import Sitemap
 from app.modules.sitemap.jstree_formatter import sitemap_to_jstree_formatter
-from app.modules.page_titles.page_titles_request import get_page_titles_request
-from app.modules.page_titles.page_titles_selenium import get_page_titles_selenium
+from app.modules.meta_tags.meta_tags_request import get_meta_tags_request
+from app.modules.meta_tags.meta_tags_selenium import get_meta_tags_selenium
 
 app: Flask = Flask(__name__)
 
@@ -17,19 +17,20 @@ def inject_defaults() -> dict[str, str]:
 
 @app.route("/", methods=["GET"])
 def sitemap() -> Union[str, Response]:
-    meta_title: str = "Sitemap"
+    page_meta_title: str = "Sitemap"
+
     url: Optional[str] = request.args.get("url")
     depth: int = request.args.get("depth", type=int, default=0)
 
     if url:
-        sitemap = Sitemap("https://normafahotel.hu/", max_depth=depth)
+        sitemap = Sitemap(url, max_depth=depth)
         sitemap.collect()
         sitemap_data: dict[str, Any] = sitemap.get()
         sitemap_jstree = sitemap_to_jstree_formatter(sitemap_data)
 
         return render_template(
             "pages/sitemap.html",
-            meta_title=meta_title,
+            meta_title=page_meta_title,
             url=url,
             depth=depth,
             sitemap=sitemap_jstree,
@@ -37,13 +38,16 @@ def sitemap() -> Union[str, Response]:
             incoming_links=json.dumps(sitemap_data.get("incoming", {})),
         )
 
-    return render_template("pages/sitemap.html", meta_title=meta_title, depth=depth)
+    return render_template(
+        "pages/sitemap.html", page_meta_title=page_meta_title, depth=depth
+    )
 
 
-@app.route("/page-titles", methods=["GET", "POST"])
-def page_titles() -> Union[str, Response]:
-    meta_title: str = "Titles"
-    titles: Optional[dict[str, str]] = None
+@app.route("/meta-tags", methods=["GET", "POST"])
+def meta_tags() -> Union[str, Response]:
+    page_meta_title: str = "Meta tags"
+
+    meta_tags: Optional[dict[str, dict[str, str]]] = None
     urls_raw: Optional[str] = request.form.get("urls")
     urls: list[str] = (
         [url for url in urls_raw.replace("\r", "").replace(" ", "").split("\n") if url]
@@ -52,11 +56,14 @@ def page_titles() -> Union[str, Response]:
     )
     enable_selenium: bool = "enable-selenium" in request.form
     if urls:
-        get_page_titles = (
-            get_page_titles_selenium if enable_selenium else get_page_titles_request
+        get_page_meta_tags = (
+            get_meta_tags_selenium if enable_selenium else get_meta_tags_request
         )
-        titles = get_page_titles(urls)
+        meta_tags = get_page_meta_tags(urls)
 
     return render_template(
-        "pages/page_titles.html", meta_title=meta_title, urls=urls, titles=titles
+        "pages/meta_tags.html",
+        page_meta_title=page_meta_title,
+        urls=urls,
+        meta_tags=meta_tags,
     )

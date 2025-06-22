@@ -6,12 +6,12 @@
     <div class="card-body pt-4">
         <div class="d-flex justify-content-between">
         <div>
-            <h4 class="card-title mb-0">Page titles</h4>
-            <div class="small text-body-secondary">Collecting page titles for a list of URLs.</div>
+            <h4 class="card-title mb-0">Meta tags</h4>
+            <div class="small text-body-secondary">Collecting page meta tags for a list of URLs.</div>
         </div>
         </div>
         <div class="pt-4">
-        <form action="{{ url_for('page_titles') }}" method="POST">
+        <form action="{{ url_for('meta_tags') }}" method="POST">
             <div class="mb-3">
                 <label for="urls" class="form-label">URLs</label>
                 <textarea class="form-control" id="urls" name="urls" rows="10">{{ "\n".join(urls) if urls else "" }}</textarea>
@@ -30,26 +30,29 @@
     </div>
     </div>
     <!-- /.card-->
-    {% if titles %}
+    {% if meta_tags %}
     <div class="card mb-4">
     <div class="card-body">
         <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('urls')">Copy URLs</button>
         <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('titles')">Copy titles</button>
+        <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('descriptions')">Copy descriptions</button>
         <button class="btn btn-outline-secondary mb-3" onclick="copyTableData('csv')">Copy table as CSV</button>
-        <div id="page_titles" class="py-4">
-            {% if titles %}
-                <table id="page-titles-table" class="table table-hover">
+        <div id="meta_tags" class="py-4">
+            {% if meta_tags %}
+                <table id="meta-tags-table" class="table table-hover">
                 <thead>
                     <tr>
                     <th scope="col">URL</th>
-                    <th scope="col">Page Title</th>
+                    <th scope="col">Title</th>
+                    <th scope="col">Description</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for url, title in titles.items() %}
+                    {% for url, url_meta_tags in meta_tags.items() %}
                     <tr>
                     <td><a href="{{ url }}" target="_blank">{{ url }}</a></td>
-                    <td>{{ title }}</td>
+                    <td>{{ url_meta_tags.get("title", "") }}</td>
+                    <td>{{ url_meta_tags.get("description", "") }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -68,7 +71,7 @@
 {% block scripts %}
 <script>
 function copyTableData(type) {
-    const table = document.querySelector("#page-titles-table");
+    const table = document.querySelector("#meta-tags-table");
     if (!table) return;
 
     let output = "";
@@ -91,6 +94,12 @@ function copyTableData(type) {
                 output += row.cells[1].innerText.trim() + "\n";
             }
         }
+    } else if (type === "descriptions") {
+        for (const row of rows.slice(1)) {
+            if (row.cells.length >= 3) {
+                output += row.cells[2].innerText.trim() + "\n";
+            }
+        }
     } else if (type === "urls") {
         for (const row of rows.slice(1)) {
             if (row.cells.length >= 1) {
@@ -103,6 +112,7 @@ function copyTableData(type) {
         alert(
             type === "csv" ? "Table copied to clipboard as CSV!" :
             type === "titles" ? "Titles copied to clipboard!" :
+            type === "descriptions" ? "Descriptions copied to clipboard!" :
             "URLs copied to clipboard!"
         );
     }).catch(err => {
