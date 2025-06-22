@@ -1,0 +1,18 @@
+# Exclude dependencies and third-party code
+node_modules/** linguist-vendored
+vendor/** linguist-vendored
+lib/** linguist-vendored
+
+# Exclude build and generated files
+dist/** linguist-generated
+build/** linguist-generated
+*.min.js linguist-generated
+*.min.css linguist-generated
+*.lock linguist-generated
+*.class linguist-generated
+*.pyc linguist-generated
+
+# Exclude documentation
+docs/** linguist-documentation
+*.md linguist-documentation
+*.rst linguist-documentation
