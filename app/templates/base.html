@@ -47,18 +47,35 @@
 
     <style>
     /* Color icons using Font Awesome + jsTree */
-    .jstree-icon.fa-folder {
-        color: #39f; /* blue */
+    .jstree-icon.fa-file-circle-check, .jstree-icon.fa-link {
+        color: #39f; /* green */
     }
     .jstree-icon.fa-file {
-        color: #9e9e9e; /* green */
+        color: #a6c8eb; /* green */
     }
-    .jstree-icon.fa-copy {
-        color: #ffc107; /* yellow */
+    .jstree-icon.fa-exclamation-circle {
+        color: #c80000;
     }
-    .jstree-icon.fa-link {
-        color: #1b9e3e; /* red */
+
+    .jstree-closed > .jstree-ocl::before {
+      content: "▶";
+      color: #0b7443;
+      font-size: 12px;
     }
+
+    .jstree-open > .jstree-ocl::before {
+      content: "▼";
+      color: #19c273;
+      font-size: 12px;
+    }
+
+      .jstree-ocl {
+        background: none !important;
+      }
+      .sticky-top {
+        top: 1rem;
+        z-index: 1030;
+      }
     </style>
   </head>
   <body>

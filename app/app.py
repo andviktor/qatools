@@ -1,28 +1,36 @@
+import json
 from flask import Flask, render_template, request, Response
 from typing import Optional, Union, Any
 
-from app.modules.sitemap.sitemap import extract_internal_links, format_sitemap_for_jstree
+from app.modules.sitemap.sitemap import Sitemap
+from app.modules.sitemap.jstree_formatter import sitemap_to_jstree_formatter
 from app.modules.page_titles.page_titles_request import get_page_titles_request
 from app.modules.page_titles.page_titles_selenium import get_page_titles_selenium
 
-app = Flask(__name__)
+app: Flask = Flask(__name__)
 
 
 @app.route("/", methods=["GET"])
 def sitemap() -> Union[str, Response]:
     url: Optional[str] = request.args.get("url")
-    depth: int = request.args.get("depth", type=int, default=100)
-    sitemap: Optional[Union[list[dict], str]] = None  # type: ignore
+    depth: int = request.args.get("depth", type=int, default=0)
 
     if url:
-        try:
-            sitemap_data: dict[str, Any] = extract_internal_links(url, max_depth=depth)
-            sitemap = format_sitemap_for_jstree(sitemap_data)
-        except Exception as e:
-            sitemap = f"An error occurred: {e}"
-        return render_template("pages/sitemap.html", url=url, depth=depth, sitemap=sitemap)
+        sitemap = Sitemap("https://normafahotel.hu/", max_depth=depth)
+        sitemap.collect()
+        sitemap_data: dict[str, Any] = sitemap.get()
+        sitemap_jstree = sitemap_to_jstree_formatter(sitemap_data)
 
-    return render_template("pages/sitemap.html")
+        return render_template(
+            "pages/sitemap.html",
+            url=url,
+            depth=depth,
+            sitemap=sitemap_jstree,
+            metadata_json=json.dumps(sitemap_data.get("metadata", {})),
+            incoming_links=json.dumps(sitemap_data.get("incoming", {})),
+        )
+
+    return render_template("pages/sitemap.html", depth=depth)
 
 
 @app.route("/page-titles", methods=["GET", "POST"])
