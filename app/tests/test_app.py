@@ -39,25 +39,37 @@ def test_root_get_with_url(
     assert b"example" in response.data
 
 
-def test_page_titles_get(client: FlaskClient) -> None:
-    response = client.get("/page-titles")
+def test_meta_tags_get(client: FlaskClient) -> None:
+    response = client.get("/meta-tags")
     assert response.status_code == 200
-    assert b"Titles" in response.data
+    assert b"Meta tags" in response.data
 
 
-@patch("app.app.get_page_titles_request")
-def test_page_titles_post_request(mock_titles: MagicMock, client: FlaskClient) -> None:
-    mock_titles.return_value = {"https://example.com": "Example Title"}
-    response = client.post("/page-titles", data={"urls": "https://example.com"})
+@patch("app.app.get_meta_tags_request")
+def test_meta_tags_post_request(mock_tags: MagicMock, client: FlaskClient) -> None:
+    mock_tags.return_value = {
+        "https://example.com": {
+            "title": "Example Title",
+            "description": "Example Description",
+        }
+    }
+    response = client.post("/meta-tags", data={"urls": "https://example.com"})
     assert response.status_code == 200
     assert b"Example Title" in response.data
+    assert b"Example Description" in response.data
 
 
-@patch("app.app.get_page_titles_selenium")
-def test_page_titles_post_selenium(mock_titles: MagicMock, client: FlaskClient) -> None:
-    mock_titles.return_value = {"https://example.com": "Selenium Title"}
+@patch("app.app.get_meta_tags_selenium")
+def test_meta_tags_post_selenium(mock_tags: MagicMock, client: FlaskClient) -> None:
+    mock_tags.return_value = {
+        "https://example.com": {
+            "title": "Selenium Title",
+            "description": "Selenium Description",
+        }
+    }
     response = client.post(
-        "/page-titles", data={"urls": "https://example.com", "enable-selenium": "on"}
+        "/meta-tags", data={"urls": "https://example.com", "enable-selenium": "on"}
     )
     assert response.status_code == 200
     assert b"Selenium Title" in response.data
+    assert b"Selenium Description" in response.data
