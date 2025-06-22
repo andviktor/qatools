@@ -3,7 +3,7 @@ from flask import Flask, render_template, request, Response
 from typing import Optional, Union, Any
 
 from app.modules.sitemap.sitemap import Sitemap
-from modules.sitemap.jstree_formatter import sitemap_to_jstree_formatter
+from app.modules.sitemap.jstree_formatter import sitemap_to_jstree_formatter
 from app.modules.page_titles.page_titles_request import get_page_titles_request
 from app.modules.page_titles.page_titles_selenium import get_page_titles_selenium
 
@@ -43,4 +43,4 @@ def page_titles() -> Union[str, Response]:
         get_page_titles = get_page_titles_selenium if enable_selenium else get_page_titles_request
         titles = get_page_titles(urls)
     
-    return render_template("pages/page_titles.html", urls=urls, titles=titles, depth=depth)
+    return render_template("pages/page_titles.html", urls=urls, titles=titles)
