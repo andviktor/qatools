@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from typing import List, Dict
 
-def get_page_titles_request(urls: List[str]) -> Dict[str, str]:
+
+def get_page_titles_request(urls: List[str]) -> Dict[str, str] | None:
     if not urls:
         return None
 
@@ -21,7 +22,11 @@ def get_page_titles_request(urls: List[str]) -> Dict[str, str]:
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
             title_tag = soup.find("title")
-            titles[url] = title_tag.string.strip() if title_tag and title_tag.string else "No title found"
+            titles[url] = (
+                title_tag.string.strip()  # type: ignore
+                if title_tag and title_tag.string  # type: ignore
+                else "No title found"
+            )
         except Exception as e:
             titles[url] = f"Error: {str(e)}"
 

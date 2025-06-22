@@ -4,6 +4,7 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from typing import List, Dict
 
+
 def get_page_titles_selenium(urls: List[str]) -> Dict[str, str] | None:
     if not urls:
         return None
