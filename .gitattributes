@@ -1,3 +1,6 @@
+# Exclude static assets
+/app/static/** linguist-generated
+
 # Exclude dependencies and third-party code
 node_modules/** linguist-vendored
 vendor/** linguist-vendored
