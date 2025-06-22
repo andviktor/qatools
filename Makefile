@@ -11,3 +11,6 @@ ruff:
 
 mypy:
 	mypy app
+
+pytest:
+	pytest

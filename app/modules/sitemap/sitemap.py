@@ -26,9 +26,10 @@ class Sitemap:
         try:
             response: Response = get(url, timeout=10)
             response.raise_for_status()
-        except RequestException:
+        except RequestException as e:
+            status = getattr(e.response, "status_code", None)
             self.response_data[url] = {
-                "status": response.status_code,
+                "status": status,
             }
             return None
         return response
@@ -96,7 +97,7 @@ class Sitemap:
 
         visited.add(normalized_url)
 
-        response: Response = self._request_get(url)
+        response: Optional[Response] = self._request_get(url)
         if not response:
             return
 

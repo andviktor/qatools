@@ -1,15 +1,15 @@
-[tool.black]
-line-length = 88
-target-version = ['py311']
-include = '\.pyi?$'
-exclude = '''
-/(
-    app/static
-)/
-'''
+[tool.pytest.ini_options]
+addopts = "--cov=app --cov-report=term --cov-report=term-missing"
 
-[tool.ruff]
-src = ["app"]
-exclude = ["app/static"]
-line-length = 88
-target-version = "py311"
+[tool.mypy]
+files = ["app"]
+exclude = "^app/static/"
+ignore_missing_imports = true
+strict = true
+
+[tool.coverage.run]
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/config.py"
+]

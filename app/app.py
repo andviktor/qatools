@@ -11,10 +11,8 @@ app: Flask = Flask(__name__)
 
 
 @app.context_processor
-def inject_defaults():
-    return {
-        "site_name": "QA-Tools"
-    }
+def inject_defaults() -> dict[str, str]:
+    return {"site_name": "QA-Tools"}
 
 
 @app.route("/", methods=["GET"])
@@ -46,11 +44,19 @@ def sitemap() -> Union[str, Response]:
 def page_titles() -> Union[str, Response]:
     meta_title: str = "Titles"
     titles: Optional[dict[str, str]] = None
-    urls: Optional[list[str]] = request.form.get("urls")
+    urls_raw: Optional[str] = request.form.get("urls")
+    urls: list[str] = (
+        [url for url in urls_raw.replace("\r", "").replace(" ", "").split("\n") if url]
+        if urls_raw
+        else []
+    )
     enable_selenium: bool = "enable-selenium" in request.form
     if urls:
-        urls = [url for url in urls.replace("\r", "").replace(" ", "").split("\n") if url]
-        get_page_titles = get_page_titles_selenium if enable_selenium else get_page_titles_request
+        get_page_titles = (
+            get_page_titles_selenium if enable_selenium else get_page_titles_request
+        )
         titles = get_page_titles(urls)
-    
-    return render_template("pages/page_titles.html", meta_title=meta_title, urls=urls, titles=titles)
+
+    return render_template(
+        "pages/page_titles.html", meta_title=meta_title, urls=urls, titles=titles
+    )
