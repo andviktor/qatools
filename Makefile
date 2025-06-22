@@ -1,16 +1,33 @@
-.PHONY: run black ruff mypy
+PROJECT_NAME = qa-tools
+SERVICE_NAME = app
+CONTAINER_NAME = $(PROJECT_NAME)-$(SERVICE_NAME)
 
-run:
-	cd app && flask run
+.PHONY: start stop rebuild purge black ruff mypy pytest
+
+start:
+	docker compose up -d
+
+stop:
+	docker compose down
+
+rebuild:
+	docker compose build --no-cache
+
+purge:
+	docker compose down --volumes --remove-orphans
+	docker image rm $(PROJECT_NAME)-$(SERVICE_NAME):latest || true
+
+shell:
+	docker exec -it $(CONTAINER_NAME) sh
+
+test:
+	docker exec -it $(CONTAINER_NAME) pytest
 
 black:
-	black app
+	docker exec -it $(CONTAINER_NAME) black app
 
 ruff:
-	ruff check app --fix
+	docker exec -it $(CONTAINER_NAME) ruff check app --fix
 
 mypy:
-	mypy app
-
-pytest:
-	pytest
+	docker exec -it $(CONTAINER_NAME) mypy app
