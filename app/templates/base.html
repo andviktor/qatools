@@ -37,37 +37,13 @@
     <link href="{{ url_for('static', filename='template/src/vendors/coreui/css/style.min.css') }}" rel="stylesheet">
 
     <style>
-    /* Color icons using Font Awesome + jsTree */
-    .jstree-icon.fa-file-circle-check, .jstree-icon.fa-link {
-        color: #39f; /* green */
-    }
-    .jstree-icon.fa-file {
-        color: #a6c8eb; /* green */
-    }
-    .jstree-icon.fa-exclamation-circle {
-        color: #c80000;
-    }
-
-    .jstree-closed > .jstree-ocl::before {
-      content: "▶";
-      color: #0b7443;
-      font-size: 12px;
-    }
-
-    .jstree-open > .jstree-ocl::before {
-      content: "▼";
-      color: #19c273;
-      font-size: 12px;
-    }
-
-      .jstree-ocl {
-        background: none !important;
-      }
       .sticky-top {
         top: 1rem;
         z-index: 1030;
       }
     </style>
+
+    {% block style %}{% endblock %}
   </head>
   <body>
     <div class="sidebar sidebar-dark sidebar-fixed border-end" id="sidebar">
@@ -100,6 +76,29 @@
     <script src="{{ url_for('static', filename='template/src/vendors/coreui/js/coreui.bundle.min.js') }}"></script> 
     <script src="{{ url_for('static', filename='template/src/vendors/jquery/js/jquery-3.7.1.min.js') }}"></script>
 
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const buttons = document.querySelectorAll("button.submit-button-with-spinner");
+
+        buttons.forEach(function (button) {
+          const form = button.closest("form");
+          if (!form) return;
+
+          const spinner = button.querySelector(".spinner-border");
+          const icon = button.querySelector("i");
+          const status = button.querySelector("[role='status']");
+
+          if (spinner) spinner.style.display = "none";
+
+          form.addEventListener("submit", function () {
+            button.disabled = true;
+            if (spinner) spinner.style.display = "inline-block";
+            if (icon) icon.style.display = "none";
+            if (status) status.textContent = "Loading";
+          });
+        });
+      });
+    </script>
     {% block scripts %}{% endblock %}
   </body>
 </html>
