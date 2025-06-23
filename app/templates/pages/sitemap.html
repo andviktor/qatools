@@ -1,4 +1,35 @@
 {% extends "base.html" %}
+{% from "macros/forms.html" import submit_button_with_spinner %}
+
+{% block style %}
+<style>
+.jstree-icon.fa-file-circle-check, .jstree-icon.fa-link {
+    color: #39f;
+}
+.jstree-icon.fa-file {
+    color: #a6c8eb;
+}
+.jstree-icon.fa-exclamation-circle {
+    color: #c80000;
+}
+
+.jstree-closed > .jstree-ocl::before {
+    content: "▶";
+    color: #0b7443;
+    font-size: 12px;
+}
+
+.jstree-open > .jstree-ocl::before {
+    content: "▼";
+    color: #19c273;
+    font-size: 12px;
+}
+
+.jstree-ocl {
+    background: none !important;
+}
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="container-lg px-4">
@@ -14,9 +45,9 @@
         <form action="{{ url_for('sitemap') }}" method="GET">
             <div class="input-group mb-3">
             <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
-            <span class="input-group-text">Max depth</span>
-            <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth }}" style="max-width: 80px;">
-            <button class="btn btn-outline-secondary" type="submit">Analyze</button>
+                <span class="input-group-text">Max depth</span>
+                <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth }}" style="max-width: 80px;">
+                {{ submit_button_with_spinner("Start", "submit-button") }}
             </div>
         </form>
         </div>
@@ -217,4 +248,5 @@
     }
     </script>
 {% endif %}
+
 {% endblock %}

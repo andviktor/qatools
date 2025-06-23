@@ -1,0 +1,7 @@
+{% macro submit_button_with_spinner(label="Submit", id="submit-button") %}
+<button id="{{ id }}" class="btn btn-outline-secondary submit-button-with-spinner" type="submit">
+    <span class="spinner-border spinner-border-sm me-2" aria-hidden="true" style="display: none;"></span>
+    <i class="fas fa-play me-2" aria-hidden="true"></i>
+    <span role="status">{{ label }}</span>
+</button>
+{% endmacro %}
