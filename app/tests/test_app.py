@@ -1,7 +1,9 @@
 import pytest
 from unittest.mock import patch, MagicMock
-from typing import Generator
+from typing import Generator, Any
 from flask.testing import FlaskClient
+from werkzeug.test import TestResponse
+
 from app.app import app
 
 
@@ -13,17 +15,17 @@ def client() -> Generator[FlaskClient, None, None]:
 
 
 def test_root_get_without_url(client: FlaskClient) -> None:
-    response = client.get("/")
+    response: TestResponse = client.get("/")
     assert response.status_code == 200
     assert b"Sitemap" in response.data
 
 
 @patch("app.app.Sitemap")
 @patch("app.app.sitemap_to_jstree_formatter")
-def test_root_get_with_url(
+def test_root_get_with_url_basic(
     mock_formatter: MagicMock, mock_sitemap: MagicMock, client: FlaskClient
 ) -> None:
-    mock_instance = MagicMock()
+    mock_instance: MagicMock = MagicMock()
     mock_instance.get.return_value = {
         "metadata": {"https://example.com": {"title": "Example"}},
         "incoming": {"https://example.com": []},
@@ -34,13 +36,42 @@ def test_root_get_with_url(
     mock_sitemap.return_value = mock_instance
     mock_formatter.return_value = [{"id": "1", "text": "example"}]
 
-    response = client.get("/?url=https://example.com&depth=2")
+    response: TestResponse = client.get("/?url=https://example.com&depth=2")
     assert response.status_code == 200
     assert b"example" in response.data
+    assert b"https://example.com" in response.data
+
+
+@patch("app.app.Sitemap")
+@patch("app.app.sitemap_to_jstree_formatter")
+def test_root_get_with_exclude_substrings(
+    mock_formatter: MagicMock, mock_sitemap: MagicMock, client: FlaskClient
+) -> None:
+    mock_instance: MagicMock = MagicMock()
+    mock_instance.get.return_value = {
+        "metadata": {},
+        "incoming": {},
+        "internal": {},
+        "external": [],
+        "root": "https://example.com",
+    }
+    mock_sitemap.return_value = mock_instance
+    mock_formatter.return_value = []
+
+    response: TestResponse = client.get(
+        "/?url=https://example.com&exclude_substrings=admin%0Alogin"
+    )
+    assert response.status_code == 200
+    assert b"admin" in response.data or b"login" in response.data
+    mock_sitemap.assert_called_once()
+    args: tuple[Any, ...]
+    kwargs: dict[str, Any]
+    args, kwargs = mock_sitemap.call_args
+    assert kwargs["exclude_substrings"] == ["admin", "login"]
 
 
 def test_meta_tags_get(client: FlaskClient) -> None:
-    response = client.get("/meta-tags")
+    response: TestResponse = client.get("/meta-tags")
     assert response.status_code == 200
     assert b"Meta tags" in response.data
 
@@ -53,7 +84,9 @@ def test_meta_tags_post_request(mock_tags: MagicMock, client: FlaskClient) -> No
             "description": "Example Description",
         }
     }
-    response = client.post("/meta-tags", data={"urls": "https://example.com"})
+    response: TestResponse = client.post(
+        "/meta-tags", data={"urls": "https://example.com"}
+    )
     assert response.status_code == 200
     assert b"Example Title" in response.data
     assert b"Example Description" in response.data
@@ -67,7 +100,7 @@ def test_meta_tags_post_selenium(mock_tags: MagicMock, client: FlaskClient) -> N
             "description": "Selenium Description",
         }
     }
-    response = client.post(
+    response: TestResponse = client.post(
         "/meta-tags", data={"urls": "https://example.com", "enable-selenium": "on"}
     )
     assert response.status_code == 200

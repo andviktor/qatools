@@ -20,26 +20,44 @@ def sitemap() -> Union[str, Response]:
     page_meta_title: str = "Sitemap"
 
     url: Optional[str] = request.args.get("url")
+    exclude_substrings_raw: Optional[str] = request.args.get("exclude_substrings")
+    exclude_substrings: list[str] = (
+        [
+            substring
+            for substring in exclude_substrings_raw.replace("\r", "")
+            .replace(" ", "")
+            .split("\n")
+            if substring
+        ]
+        if exclude_substrings_raw
+        else []
+    )
     depth: int = request.args.get("depth", type=int, default=0)
 
     if url:
-        sitemap = Sitemap(url, max_depth=depth)
+        sitemap: Sitemap = Sitemap(
+            url, max_depth=depth, exclude_substrings=exclude_substrings
+        )
         sitemap.collect()
         sitemap_data: dict[str, Any] = sitemap.get()
         sitemap_jstree = sitemap_to_jstree_formatter(sitemap_data)
 
         return render_template(
             "pages/sitemap.html",
-            meta_title=page_meta_title,
+            page_meta_title=page_meta_title,
             url=url,
             depth=depth,
             sitemap=sitemap_jstree,
             metadata_json=json.dumps(sitemap_data.get("metadata", {})),
             incoming_links=json.dumps(sitemap_data.get("incoming", {})),
+            exclude_substrings=exclude_substrings,
         )
 
     return render_template(
-        "pages/sitemap.html", page_meta_title=page_meta_title, depth=depth
+        "pages/sitemap.html",
+        page_meta_title=page_meta_title,
+        depth=depth,
+        exclude_substrings=exclude_substrings,
     )
 
 
