@@ -143,22 +143,24 @@
     const enhancedData = rawData.map(node => {
         let iconClass = "fa fa-file";
         if (node.parent === "__external__") {
-        iconClass = "fa fa-link";
+            iconClass = "fa fa-link";
         } else if (node.status === 404) {
-        iconClass = "fa fa-exclamation-circle";
+            iconClass = "fa fa-exclamation-circle";
         } else if (metadata[node.text]) {
-        iconClass = "fa fa-file-circle-check";
+            iconClass = "fa fa-file-circle-check";
         }
-        
-        const label = node.text.length > 60
-            ? node.text.slice(0, 57) + "…"
-            : node.text;
+
+        const fullText = node.text;
+        const label = fullText.length > 60 ? fullText.slice(0, 57) + "…" : fullText;
 
         return {
             ...node,
             icon: iconClass,
             text: label,
-            li_attr: { title: node.text }
+            li_attr: {
+                title: fullText,
+                full_url: fullText
+            }
         };
     });
 
@@ -171,13 +173,13 @@
         const node = $(e.target).closest("li");
         const tree = $('#jstree').jstree(true);
         const data = tree.get_node(node);
-        const url = data?.text;
+        const url = data?.li_attr?.full_url;
         if (url?.startsWith("http")) window.open(url, '_blank');
     });
 
     $('#jstree').on('select_node.jstree', function (e, data) {
         clearTimeout(clickTimer);
-        clickTimer = setTimeout(() => renderDetails(data.node.text), 250);
+        clickTimer = setTimeout(() => renderDetails(data.node.li_attr.full_url), 250);
     });
 
     $('#btn-collapse').on('click', () => $('#jstree').jstree('close_all'));
