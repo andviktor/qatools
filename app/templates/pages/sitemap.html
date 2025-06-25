@@ -42,14 +42,34 @@
         </div>
         </div>
         <div class="pt-4">
-        <form action="{{ url_for('sitemap') }}" method="GET">
-            <div class="input-group mb-3">
-            <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
-                <span class="input-group-text">Max depth</span>
-                <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth }}" style="max-width: 80px;">
-                {{ submit_button_with_spinner("Start", "submit-button") }}
-            </div>
-        </form>
+            <form action="{{ url_for('sitemap') }}" method="GET">
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" placeholder="Example: https://website.com/" name="url" value="{{ url if url else ''}}">
+                    <span class="input-group-text">Max depth</span>
+                    <input type="number" class="form-control form-control-sm" name="depth" min="0" value="{{ depth }}" style="max-width: 80px;">
+                    {{ submit_button_with_spinner("Start", "submit-button") }}
+                </div>
+
+                <p class="d-inline-flex gap-1 mb-2">
+                    <a
+                    href="#excludeCollapse"
+                    class="text-body small"
+                    style="text-decoration: none;"
+                    data-coreui-toggle="collapse"
+                    role="button"
+                    aria-controls="excludeCollapse"
+                    >
+                    <i class="fas fa-chevron-right me-1 toggle-icon" id="excludeCollapseIcon" style="font-size: 0.9em;" aria-hidden="true"></i>
+                    Show advanced options
+                    </a>
+                </p>
+                <div class="collapse" id="excludeCollapse">
+                    <div class="mb-3">
+                    <label for="exclude-substrings" class="form-label">Exclude URLs with substrings:</label>
+                    <textarea class="form-control" name="exclude_substrings" id="exclude-substrings" rows="3">{{ "\n".join(exclude_substrings) }}</textarea>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
     </div>
@@ -263,5 +283,34 @@
     }
     </script>
 {% endif %}
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const collapseElement = document.getElementById("excludeCollapse");
+  const icon = document.getElementById("excludeCollapseIcon");
+  const textarea = document.getElementById("exclude-substrings");
+
+  // Always initialize manually
+  const collapseInstance = coreui.Collapse.getOrCreateInstance(collapseElement, { toggle: false });
+
+  // Update icon when toggled
+  collapseElement.addEventListener("show.coreui.collapse", () => {
+    icon.classList.remove("fa-chevron-right");
+    icon.classList.add("fa-chevron-down");
+  });
+
+  collapseElement.addEventListener("hide.coreui.collapse", () => {
+    icon.classList.remove("fa-chevron-down");
+    icon.classList.add("fa-chevron-right");
+  });
+
+  // Check textarea content and toggle accordingly
+  if (textarea && textarea.value.trim().length > 0) {
+    collapseInstance.show();
+  } else {
+    collapseInstance.hide();
+  }
+});
+</script>
 
 {% endblock %}

@@ -2,9 +2,8 @@ from unittest.mock import patch, MagicMock
 from bs4 import BeautifulSoup
 from requests import RequestException
 from requests.models import Response
-from typing import Set
+from typing import Set, Any
 from app.modules.sitemap.sitemap import Sitemap
-
 
 HTML_PAGE: str = """
 <html>
@@ -29,10 +28,12 @@ def test_extract_links_with_depth(mock_get: MagicMock) -> None:
     response_mock.raise_for_status.return_value = None
     mock_get.return_value = response_mock
 
-    sitemap: Sitemap = Sitemap("https://example.com", max_depth=1)
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=1, exclude_substrings=[]
+    )
     sitemap.collect()
 
-    data = sitemap.get()
+    data: dict[str, Any] = sitemap.get()
     assert data["root"] == "https://example.com"
     assert "https://example.com/about" in data["internal"]["https://example.com"]
     assert "https://external.com" in data["external"]
@@ -47,6 +48,26 @@ def test_extract_links_with_depth(mock_get: MagicMock) -> None:
 
 
 @patch("app.modules.sitemap.sitemap.get")
+def test_extract_links_with_exclusion(mock_get: MagicMock) -> None:
+    response_mock: MagicMock = MagicMock()
+    response_mock.status_code = 200
+    response_mock.text = HTML_PAGE
+    response_mock.raise_for_status.return_value = None
+    mock_get.return_value = response_mock
+
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=1, exclude_substrings=["about"]
+    )
+    sitemap.collect()
+
+    data: dict[str, Any] = sitemap.get()
+    assert "https://example.com/about" not in data["internal"]["https://example.com"]
+    assert "https://external.com" in data["external"]
+    assert "https://example.com/about" not in data["incoming"]
+    assert "https://example.com" in data["incoming"]["https://external.com"]
+
+
+@patch("app.modules.sitemap.sitemap.get")
 def test_extract_links_with_request_exception(mock_get: MagicMock) -> None:
     response_mock: Response = Response()
     response_mock.status_code = 404
@@ -55,10 +76,10 @@ def test_extract_links_with_request_exception(mock_get: MagicMock) -> None:
     exc.response = response_mock
     mock_get.side_effect = exc
 
-    sitemap: Sitemap = Sitemap("https://fail.com", max_depth=1)
+    sitemap: Sitemap = Sitemap("https://fail.com", max_depth=1, exclude_substrings=[])
     sitemap.collect()
 
-    data = sitemap.get()
+    data: dict[str, Any] = sitemap.get()
     assert data["internal"] == {}
     assert data["metadata"] == {}
     assert data["response"]["https://fail.com"]["status"] == 404
@@ -73,6 +94,9 @@ def test_extract_tags_with_missing_elements() -> None:
     soup: BeautifulSoup = BeautifulSoup(
         "<html><head></head><body></body></html>", "html.parser"
     )
+    title: str
+    desc: str
+    canon: str
     title, desc, canon = Sitemap._extract_tags(soup)
     assert title == ""
     assert desc == ""
@@ -83,6 +107,9 @@ def test_extract_tags_with_empty_title() -> None:
     soup: BeautifulSoup = BeautifulSoup(
         "<html><head><title></title></head><body></body></html>", "html.parser"
     )
+    title: str
+    desc: str
+    canon: str
     title, desc, canon = Sitemap._extract_tags(soup)
     assert title == ""
     assert desc == ""
@@ -90,7 +117,9 @@ def test_extract_tags_with_empty_title() -> None:
 
 
 def test_process_incoming_links_builds_reverse_map() -> None:
-    sitemap: Sitemap = Sitemap("https://example.com", max_depth=0)
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=0, exclude_substrings=[]
+    )
     sitemap.internal_links = {
         "https://example.com": ["https://example.com/page1"],
         "https://example.com/page1": ["https://example.com/page2"],
@@ -98,14 +127,16 @@ def test_process_incoming_links_builds_reverse_map() -> None:
     }
     sitemap._process_incoming_links()
 
-    incoming = sitemap.incoming_links
+    incoming: dict[str, Any] = sitemap.incoming_links
     assert incoming["https://example.com/page1"] == ["https://example.com"]
     assert incoming["https://example.com/page2"] == ["https://example.com/page1"]
     assert incoming["https://example.com"] == []
 
 
 def test_extract_links_skips_already_visited() -> None:
-    sitemap: Sitemap = Sitemap("https://example.com", max_depth=1)
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=1, exclude_substrings=[]
+    )
     visited: Set[str] = {"https://example.com"}
     sitemap._extract_links("https://example.com", visited=visited)
 
@@ -114,14 +145,18 @@ def test_process_page_a_tags_skips_non_tag() -> None:
     soup: BeautifulSoup = BeautifulSoup(
         "<html><body><!-- comment --></body></html>", "html.parser"
     )
-    sitemap: Sitemap = Sitemap("https://example.com", max_depth=1)
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=1, exclude_substrings=[]
+    )
     sitemap._process_page_a_tags("https://example.com", soup)
     assert sitemap.internal_links["https://example.com"] == []
 
 
 def test_process_page_a_tags_skips_non_tag_instance() -> None:
-    soup = BeautifulSoup("<html><body></body></html>", "html.parser")
-    sitemap = Sitemap("https://example.com", max_depth=1)
+    soup: BeautifulSoup = BeautifulSoup("<html><body></body></html>", "html.parser")
+    sitemap: Sitemap = Sitemap(
+        "https://example.com", max_depth=1, exclude_substrings=[]
+    )
 
     with patch.object(soup, "find_all", return_value=["not-a-tag"]):
         sitemap._process_page_a_tags("https://example.com", soup)

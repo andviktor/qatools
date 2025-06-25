@@ -1,17 +1,19 @@
+from typing import List, Set, Dict, Any, Optional, Tuple
 from requests import get, Response, RequestException
 from bs4 import BeautifulSoup, Tag
 from urllib.parse import urlparse, urljoin, ParseResult
-from typing import List, Set, Dict, Any
-from typing import Optional
-from logging import getLogger, Logger
+from logging import getLogger
 
-logger: Logger = getLogger(__name__)
+logger = getLogger(__name__)
 
 
 class Sitemap:
-    def __init__(self, root: str, max_depth: int) -> None:
+    def __init__(
+        self, root: str, max_depth: int, exclude_substrings: Optional[List[str]] = None
+    ) -> None:
         self.root: str = Sitemap._normalize_url(root)
         self.max_depth: int = max_depth
+        self.exclude_substrings: List[str] = exclude_substrings or []
         self.internal_links: Dict[str, List[str]] = {}
         self.external_links: Set[str] = set()
         self.metadata: Dict[str, Dict[str, str]] = {}
@@ -27,31 +29,34 @@ class Sitemap:
             response: Response = get(url, timeout=10)
             response.raise_for_status()
         except RequestException as e:
-            status = getattr(e.response, "status_code", None)
-            self.response_data[url] = {
-                "status": status,
-            }
+            status: Optional[int] = getattr(e.response, "status_code", None)
+            self.response_data[url] = {"status": status}
             return None
         return response
 
     @staticmethod
-    def _extract_tags(soup: BeautifulSoup) -> tuple[str, str, str]:
+    def _extract_tags(soup: BeautifulSoup) -> Tuple[str, str, str]:
         title: str = (
             soup.title.string.strip() if soup.title and soup.title.string else ""
         )
-        description_tag: Any = soup.find("meta", attrs={"name": "description"})
+        description_tag: Optional[Tag] = soup.find(  # type: ignore
+            "meta", attrs={"name": "description"}
+        )
         description: str = (
-            description_tag["content"].strip()
+            description_tag["content"].strip()  # type: ignore
             if description_tag and "content" in description_tag.attrs
             else ""
         )
-        canonical_tag: Any = soup.find("link", rel="canonical")
+        canonical_tag: Optional[Tag] = soup.find("link", rel="canonical")  # type: ignore
         canonical: str = (
-            canonical_tag["href"].strip()
+            canonical_tag["href"].strip()  # type: ignore
             if canonical_tag and "href" in canonical_tag.attrs
             else ""
         )
         return title, description, canonical
+
+    def _should_exclude(self, url: str) -> bool:
+        return any(substring in url for substring in self.exclude_substrings)
 
     def _process_page_a_tags(self, url: str, soup: BeautifulSoup) -> None:
         normalized_url: str = Sitemap._normalize_url(url)
@@ -66,47 +71,41 @@ class Sitemap:
             href: str = str(a_tag["href"])
             full_url: str = urljoin(base_url, href)
             clean_url: str = Sitemap._normalize_url(full_url.split("#")[0])
-            parsed_href = urlparse(clean_url)
+            if self._should_exclude(clean_url):
+                continue
+
+            parsed_href: ParseResult = urlparse(clean_url)
 
             if parsed_href.netloc == parsed_url.netloc:
                 if clean_url != normalized_url and clean_url not in page_links:
                     page_links.append(clean_url)
             else:
                 self.external_links.add(clean_url)
-
                 if clean_url not in self.incoming_links:
                     self.incoming_links[clean_url] = []
-
                 if normalized_url not in self.incoming_links[clean_url]:
                     self.incoming_links[clean_url].append(normalized_url)
 
         self.internal_links[normalized_url] = page_links
 
     def _extract_links(
-        self,
-        url: str,
-        visited: Optional[Set[str]] = None,
-        current_depth: int = 0,
+        self, url: str, visited: Optional[Set[str]] = None, current_depth: int = 0
     ) -> None:
         if visited is None:
             visited = set()
 
         normalized_url: str = Sitemap._normalize_url(url)
-        if normalized_url in visited:
+        if normalized_url in visited or self._should_exclude(normalized_url):
             return
 
         visited.add(normalized_url)
-
         response: Optional[Response] = self._request_get(url)
         if not response:
             return
 
         soup: BeautifulSoup = BeautifulSoup(response.text, "html.parser")
-
         self._process_page_a_tags(url, soup)
-
         title, description, canonical = Sitemap._extract_tags(soup)
-
         self.metadata[normalized_url] = {
             "title": title,
             "description": description,
@@ -116,9 +115,7 @@ class Sitemap:
         if current_depth < self.max_depth:
             for link in self.internal_links[normalized_url]:
                 self._extract_links(
-                    link,
-                    visited=visited,
-                    current_depth=current_depth + 1,
+                    link, visited=visited, current_depth=current_depth + 1
                 )
 
     def _process_incoming_links(self) -> None:
